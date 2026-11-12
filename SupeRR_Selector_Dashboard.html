@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupeRR Selector Season 2 — Rajasthan Royals War-Room Analytics Dashboard</title>
+<style>
+  :root {
+    --rr-pink: #E5097F;
+    --rr-pink-light: #FDF2F8;
+    --rr-navy: #0F1F4B;
+    --rr-navy-dark: #09132E;
+    --rr-gold: #F5A623;
+    --bg-main: #0B1120;
+    --bg-card: #151F32;
+    --bg-card-alt: #1E293B;
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+    --border-col: #334155;
+    --emerald: #10B981;
+    --amber: #F59E0B;
+    --crimson: #EF4444;
+    --cyan: #06B6D4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  body { background: var(--bg-main); color: var(--text-main); line-height: 1.5; padding-bottom: 60px; }
+  
+  /* Top Hero Header */
+  .hero {
+    background: linear-gradient(135deg, var(--rr-navy-dark) 0%, var(--rr-navy) 60%, #3B0764 100%);
+    border-bottom: 4px solid var(--rr-pink);
+    padding: 24px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .hero-left h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.4px; color: #FFFFFF; }
+  .hero-left h1 span { color: var(--rr-pink); }
+  .hero-left p { color: #CBD5E1; font-size: 13.5px; margin-top: 4px; }
+  .hero-badges { display: flex; gap: 12px; flex-wrap: wrap; }
+  .badge-kpi {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(229,9,127,0.45);
+    border-radius: 10px;
+    padding: 8px 14px;
+    text-align: center;
+  }
+  .badge-kpi .val { font-size: 16px; font-weight: 800; color: var(--rr-gold); }
+  .badge-kpi .lbl { font-size: 11px; color: #CBD5E1; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Navigation Tabs */
+  .nav-bar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-col);
+    padding: 0 36px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .tab-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 15px 20px;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: #FFFFFF; }
+  .tab-btn.active {
+    color: #FFFFFF;
+    border-bottom-color: var(--rr-pink);
+    background: rgba(229,9,127,0.08);
+  }
+
+  /* Main Container */
+  .container { max-width: 1440px; margin: 24px auto; padding: 0 28px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Grid & Cards */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 1024px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-col);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-col);
+  }
+  .card-title { font-size: 16px; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 8px; }
+  .pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+  .pill-pink { background: rgba(229,9,127,0.2); color: #F472B6; border: 1px solid rgba(229,9,127,0.4); }
+  .pill-blue { background: rgba(6,182,212,0.18); color: #38BDF8; border: 1px solid rgba(56,189,248,0.4); }
+  .pill-gold { background: rgba(245,166,35,0.18); color: var(--rr-gold); border: 1px solid rgba(245,166,35,0.4); }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th {
+    background: var(--bg-card-alt);
+    color: #CBD5E1;
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 10px;
+    border-bottom: 2px solid var(--border-col);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--rr-gold); }
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(51,65,85,0.6);
+    vertical-align: middle;
+  }
+  tr.clickable-row { cursor: pointer; transition: background 0.15s; }
+  tr.clickable-row:hover { background: rgba(229,9,127,0.12); }
+  tr.top10-row { background: rgba(15,31,75,0.35); }
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 11.5px;
+    background: var(--rr-pink);
+    color: #fff;
+  }
+  .rank-badge.bowl { background: #0284C7; }
+  .rank-badge.reserve { background: #334155; color: #CBD5E1; }
+  .prr-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .prr-bar { height: 7px; border-radius: 4px; background: linear-gradient(90deg, var(--rr-pink), var(--rr-gold)); }
+  .pos-val { color: #34D399; font-weight: 700; }
+  .neg-val { color: #F87171; font-weight: 700; }
+
+  /* Player Spotlight Modal / Drawer Box */
+  .spotlight-box {
+    background: linear-gradient(135deg, rgba(15,31,75,0.9), rgba(21,31,50,0.95));
+    border: 1.5px solid var(--rr-pink);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .spotlight-main { flex: 1; min-width: 280px; }
+  .spotlight-main h3 { font-size: 19px; font-weight: 800; color: #FFFFFF; }
+  .spotlight-main .sub { font-size: 12.5px; color: var(--rr-gold); font-weight: 600; margin-top: 2px; }
+  .spotlight-main p { font-size: 13px; color: #E2E8F0; margin-top: 8px; }
+  .spotlight-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat-tile {
+    background: rgba(11,17,32,0.75);
+    border: 1px solid var(--border-col);
+    border-radius: 8px;
+    padding: 8px 14px;
+    min-width: 105px;
+    text-align: center;
+  }
+  .stat-tile .v { font-size: 16px; font-weight: 800; color: #FFFFFF; }
+  .stat-tile .k { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; }
+
+  /* Simulator Controls */
+  .sim-control { margin-bottom: 14px; }
+  .sim-control label { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: #CBD5E1; margin-bottom: 5px; }
+  .sim-control input[type=range] { width: 100%; accent-color: var(--rr-pink); cursor: pointer; }
+  .sim-select { width: 100%; padding: 8px 10px; background: var(--bg-card-alt); color: #fff; border: 1px solid var(--border-col); border-radius: 6px; font-size: 13px; }
+  .gauge-display {
+    text-align: center;
+    padding: 24px 16px;
+    background: radial-gradient(circle at center, rgba(229,9,127,0.16), transparent 70%);
+    border-radius: 12px;
+    border: 1px solid var(--border-col);
+  }
+  .gauge-num { font-size: 54px; font-weight: 900; line-height: 1; letter-spacing: -1px; }
+  .gauge-tier { font-size: 15px; font-weight: 800; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .subbar-row { margin-top: 12px; text-align: left; }
+  .subbar-lbl { display: flex; justify-content: space-between; font-size: 12px; color: #CBD5E1; margin-bottom: 4px; }
+  .subbar-track { height: 8px; background: #0B1120; border-radius: 4px; overflow: hidden; }
+  .subbar-fill { height: 100%; border-radius: 4px; transition: width 0.2s; }
+
+  /* Filter Bar */
+  .filter-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .search-input {
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border-col);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    min-width: 240px;
+  }
+  .preset-btn {
+    background: var(--bg-card-alt);
+    color: #CBD5E1;
+    border: 1px solid var(--border-col);
+    padding: 7px 13px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .preset-btn:hover, .preset-btn.active { background: var(--rr-pink); color: #fff; border-color: var(--rr-pink); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-left">
+    <h1>RAJASTHAN ROYALS WAR ROOM <span>| SupeRR Selector Season 2</span></h1>
+    <p>Round 1: Identify the Most Reliable Batters &amp; Bowlers Under Pressure for the IPL 2027 Auction</p>
+  </div>
+  <div class="hero-badges">
+    <div class="badge-kpi"><div class="val">200,999</div><div class="lbl">Deliveries Modelled</div></div>
+    <div class="badge-kpi"><div class="val">867 Matches</div><div class="lbl">IPL &amp; T20I (2022–26)</div></div>
+    <div class="badge-kpi"><div class="val">PI &ge; 55</div><div class="lbl">High-Pressure Cutoff</div></div>
+    <div class="badge-kpi"><div class="val">Top 10 + 10</div><div class="lbl">Empirical-Bayes PRR</div></div>
+  </div>
+</header>
+
+<nav class="nav-bar">
+  <button class="tab-btn active" onclick="switchTab('tab-unstop', this)">1. Official Unstop Top-10 Picks</button>
+  <button class="tab-btn" onclick="switchTab('tab-sim', this)">2. Live Pressure Index (PI) Simulator &amp; Methodology</button>
+  <button class="tab-btn" onclick="switchTab('tab-explorer', this)">3. Top-20 Batter &amp; Bowler Scouting Explorer</button>
+  <button class="tab-btn" onclick="switchTab('tab-rr', this)">4. Rajasthan Royals IPL 2027 Squad Audit &amp; Auction Matrix</button>
+</nav>
+
+<main class="container">
+
+  <!-- TAB 1: UNSTOP TOP 10 PICKS -->
+  <section id="tab-unstop" class="tab-panel active">
+    <div id="spotlight-banner" class="spotlight-box">
+      <div class="spotlight-main">
+        <span class="pill pill-pink" id="sp-tag">Selected Player Scouting Card — Click Any Row Below to Inspect</span>
+        <h3 id="sp-name" style="margin-top:6px;">#1 Batter: Shashank Singh (Player ID: 2756)</h3>
+        <div class="sub" id="sp-role">#5/#6 Pace-Hitting Finisher  |  Prime Domestic Target</div>
+        <p id="sp-note">61.60 HP Avg &amp; +41.84 SR surge under pressure (135.7 &rarr; 177.5 SR); 80.0% match consistency. Solves RR's #6 high-dismissal crisis without using an overseas slot.</p>
+      </div>
+      <div class="spotlight-stats" id="sp-stats">
+        <div class="stat-tile"><div class="v" style="color:var(--rr-gold)">98.00</div><div class="k">PRR Score</div></div>
+        <div class="stat-tile"><div class="v">347</div><div class="k">HP Balls</div></div>
+        <div class="stat-tile"><div class="v pos-val">177.52</div><div class="k">HP Strike Rate</div></div>
+        <div class="stat-tile"><div class="v pos-val">+41.84</div><div class="k">&Delta;SR vs Usual</div></div>
+        <div class="stat-tile"><div class="v">61.60</div><div class="k">HP Average</div></div>
+        <div class="stat-tile"><div class="v pos-val">+45.79</div><div class="k">HP RVA / 100</div></div>
+        <div class="stat-tile"><div class="v">80.0%</div><div class="k">Consistency</div></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Top 10 Batters Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#127951; Official Top 10 Batters Under Pressure (Unstop Dropdown 1–10)</div>
+          <span class="pill pill-pink">PI &ge; 55</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rk</th>
+                <th>Batter (Unstop Name &amp; ID)</th>
+                <th>PRR</th>
+                <th>HP Balls</th>
+                <th>HP SR (&Delta; Self)</th>
+                <th>HP Avg</th>
+                <th>HP RVA/100</th>
+                <th>Cons%</th>
+              </tr>
+            </thead>
+            <tbody id="top10-bat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top 10 Bowlers Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#127919; Official Top 10 Bowlers Under Pressure (Unstop Dropdown 1–10)</div>
+          <span class="pill pill-blue">PI &ge; 55</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rk</th>
+                <th>Bowler (Unstop Name &amp; ID)</th>
+                <th>PRR</th>
+                <th>HP Balls / Wkts</th>
+                <th>HP Econ (Saved)</th>
+                <th>HP SR</th>
+                <th>HP RVA/100</th>
+                <th>Cons%</th>
+              </tr>
+            </thead>
+            <tbody id="top10-bowl-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: LIVE PRESSURE INDEX SIMULATOR & METHODOLOGY -->
+  <section id="tab-sim" class="tab-panel">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#9881;&#65039; Interactive Pre-Delivery Match State Simulator</div>
+          <span class="pill pill-gold">Zero Outcome Leakage</span>
+        </div>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">
+          Adjust the match parameters below to see how our delivery-level <b>Composite Pressure Index (PI<sub>b</sub>)</b> responds to rate tension, wicket collapse shock, late-overs time urgency, and live-contest win-probability filtering.
+        </p>
+
+        <div class="filter-bar" style="margin-bottom:14px;">
+          <button class="preset-btn" onclick="setScenario(2, 18, 12.8, 12.8, 5, 1, 38, 1.0)">Scenario A: Steep Chase Over 18 (12.8 RPO)</button>
+          <button class="preset-btn" onclick="setScenario(1, 4, 7.5, 7.5, 3, 2, 32, 1.0)">Scenario B: Powerplay Collapse (22/3 in Over 4)</button>
+          <button class="preset-btn" onclick="setScenario(2, 19, 64.0, 64.0, 7, 1, 0.2, 1.0)">Scenario C: Dead Blowout (64 needed off 6 balls)</button>
+          <button class="preset-btn" onclick="setScenario(2, 19, 11.5, 13.5, 5, 1, 48, 1.2)">Scenario D: IPL Final Over 19</button>
+        </div>
+
+        <div class="sim-control">
+          <label><span>Innings &amp; Match Stakes</span><span id="lbl-stakes">2nd Innings (Chase) | League (1.00x)</span></label>
+          <div style="display:flex; gap:10px;">
+            <select id="sim-inn" class="sim-select" onchange="updateSim()">
+              <option value="2" selected>2nd Innings (Target Chase)</option>
+              <option value="1">1st Innings (Setting Target)</option>
+            </select>
+            <select id="sim-stakes" class="sim-select" onchange="updateSim()">
+              <option value="1.0" selected>League Match (1.00x)</option>
+              <option value="1.12">Playoff / Qualifier / Eliminator (1.12x)</option>
+              <option value="1.20">Tournament Final (1.20x)</option>
+              <option value="SO">Super Over (PI = 100)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sim-control">
+          <label><span>Current Over (1 to 20)</span><span id="lbl-over">Over 18 (18 balls remaining)</span></label>
+          <input type="range" id="sim-over" min="1" max="20" step="1" value="18" oninput="updateSim()">
+        </div>
+
+        <div class="sim-control">
+          <label><span id="lbl-rrr-title">Instantaneous Required Run Rate (RRR)</span><span id="lbl-rrr">12.80 RPO (Par: 8.80)</span></label>
+          <input type="range" id="sim-rrr" min="4.0" max="36.0" step="0.2" value="12.8" oninput="updateSim()">
+        </div>
+
+        <div class="sim-control">
+          <label><span>Batter Max Entry RRR in Chase (Survivorship-Bias Fix)</span><span id="lbl-maxrrr">12.80 RPO</span></label>
+          <input type="range" id="sim-maxrrr" min="6.0" max="24.0" step="0.2" value="12.8" oninput="updateSim()">
+        </div>
+
+        <div class="sim-control">
+          <label><span>Total Wickets Lost (0 to 9)</span><span id="lbl-wkts">5 Wickets Lost</span></label>
+          <input type="range" id="sim-wkts" min="0" max="9" step="1" value="5" oninput="updateSim()">
+        </div>
+
+        <div class="sim-control">
+          <label><span>Recent Wickets Lost in Last 18 Balls (Collapse Shock)</span><span id="lbl-w18">1 Wicket in last 3 overs</span></label>
+          <input type="range" id="sim-w18" min="0" max="4" step="1" value="1" oninput="updateSim()">
+        </div>
+
+        <div class="sim-control">
+          <label><span>Batting Team Live Win Probability (%)</span><span id="lbl-wp">38.0% (High Leverage)</span></label>
+          <input type="range" id="sim-wp" min="0.1" max="99.9" step="0.5" value="38.0" oninput="updateSim()">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#128200; Computed Delivery Pressure Index (PI<sub>b</sub>)</div>
+          <span class="pill pill-pink">0 to 100 Scale</span>
+        </div>
+
+        <div class="gauge-display">
+          <div class="gauge-num" id="sim-pi-val" style="color:var(--rr-pink)">78.4</div>
+          <div class="gauge-tier" id="sim-pi-tier" style="color:var(--rr-gold)">EXTREME CLUTCH PRESSURE (PI &ge; 70)</div>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:6px;" id="sim-pi-desc">
+            Qualifies for High-Pressure (PI &ge; 55) and Extreme-Clutch (PI &ge; 70) evaluation pillars.
+          </p>
+
+          <div class="subbar-row" style="margin-top:20px;">
+            <div class="subbar-lbl"><span>1. Rate &amp; Finishing Tension (S<sub>rate</sub>, 42% weight)</span><span id="val-srate">0.88</span></div>
+            <div class="subbar-track"><div class="subbar-fill" id="bar-srate" style="width:88%; background:var(--rr-pink);"></div></div>
+          </div>
+
+          <div class="subbar-row">
+            <div class="subbar-lbl"><span>2. Wicket &amp; Collapse Shock (S<sub>wkt</sub>, 33% weight)</span><span id="val-swkt">0.62</span></div>
+            <div class="subbar-track"><div class="subbar-fill" id="bar-swkt" style="width:62%; background:var(--rr-gold);"></div></div>
+          </div>
+
+          <div class="subbar-row">
+            <div class="subbar-lbl"><span>3. Phase &amp; Time Horizon Urgency (S<sub>time</sub>, 25% weight)</span><span id="val-stime">0.94</span></div>
+            <div class="subbar-track"><div class="subbar-fill" id="bar-stime" style="width:94%; background:var(--cyan);"></div></div>
+          </div>
+
+          <div class="subbar-row">
+            <div class="subbar-lbl"><span>4. Live-Contest Leverage Filter (L<sub>live</sub> &times; M<sub>stakes</sub>)</span><span id="val-llive">0.99x</span></div>
+            <div class="subbar-track"><div class="subbar-fill" id="bar-llive" style="width:99%; background:var(--emerald);"></div></div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; background:var(--bg-card-alt); padding:14px; border-radius:10px; font-size:12.3px; color:#E2E8F0;">
+          <b>4-Pillar Pressure Reliability Rating (PRR) Architecture:</b>
+          <ul style="margin-left:18px; margin-top:6px; color:#CBD5E1;">
+            <li><b>Pillar 1 — High-Pressure Execution (45%):</b> Empirical-Bayes RVA/100 in High Pressure (PI &ge; 55) + SR/Econ differential vs. contextual (Tier &times; Era &times; Over) par.</li>
+            <li><b>Pillar 2 — Self-Elevation vs. Usual Baseline (20%):</b> Performance surge in High Pressure relative to the player's own Normal/Low-Pressure baseline (PI &lt; 55).</li>
+            <li><b>Pillar 3 — Match-to-Match Consistency (20%):</b> Win-impact match rate (% of qualifying pressure appearances with positive net RVA) + Median Match RVA.</li>
+            <li><b>Pillar 4 — Extreme Clutch &amp; Knockouts (15%):</b> Empirical-Bayes RVA/100 in knife-edge moments (PI &ge; 70, top 15.5% of deliveries &amp; Playoffs/Finals).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: TOP 20 BATTER & BOWLER EXPLORER -->
+  <section id="tab-explorer" class="tab-panel">
+    <div class="card" style="margin-bottom:22px;">
+      <div class="card-header">
+        <div class="card-title">&#128269; Complete Top-20 High-Pressure Batters Explorer (Click Column Headers to Sort)</div>
+        <input type="text" id="bat-search" class="search-input" placeholder="Search batter name or role..." oninput="renderExplorerTables()">
+      </div>
+      <div class="table-wrap">
+        <table id="exp-bat-table">
+          <thead>
+            <tr>
+              <th onclick="sortExplorer('bat', 'rank')">Rk &#8597;</th>
+              <th onclick="sortExplorer('bat', 'name')">Batter (ID) &#8597;</th>
+              <th onclick="sortExplorer('bat', 'prr')">PRR &#8597;</th>
+              <th onclick="sortExplorer('bat', 'ipl_balls')">IPL Balls &#8597;</th>
+              <th onclick="sortExplorer('bat', 'hp_balls')">HP Balls &#8597;</th>
+              <th onclick="sortExplorer('bat', 'norm_sr')">Usual SR &#8597;</th>
+              <th onclick="sortExplorer('bat', 'hp_sr')">HP SR &#8597;</th>
+              <th onclick="sortExplorer('bat', 'sr_delta')">&Delta;SR Self &#8597;</th>
+              <th onclick="sortExplorer('bat', 'sr_vs_par')">SR vs Par &#8597;</th>
+              <th onclick="sortExplorer('bat', 'hp_avg')">HP Avg &#8597;</th>
+              <th onclick="sortExplorer('bat', 'hp_rva_100')">HP RVA/100 &#8597;</th>
+              <th onclick="sortExplorer('bat', 'ep_rva_100')">EP RVA/100 &#8597;</th>
+              <th onclick="sortExplorer('bat', 'cons_rate')">Cons% &#8597;</th>
+              <th>RR 2027 Role &amp; Tier</th>
+            </tr>
+          </thead>
+          <tbody id="exp-bat-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">&#128269; Complete Top-20 High-Pressure Bowlers Explorer (Click Column Headers to Sort)</div>
+        <input type="text" id="bowl-search" class="search-input" placeholder="Search bowler name or role..." oninput="renderExplorerTables()">
+      </div>
+      <div class="table-wrap">
+        <table id="exp-bowl-table">
+          <thead>
+            <tr>
+              <th onclick="sortExplorer('bowl', 'rank')">Rk &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'name')">Bowler (ID) &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'prr')">PRR &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'ipl_balls')">IPL Balls &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'hp_balls')">HP Balls &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'hp_wkts')">HP Wkts &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'norm_econ')">Usual Econ &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'hp_econ')">HP Econ &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'econ_saved')">Econ Saved &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'hp_sr')">HP SR &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'hp_dot_pct')">HP Dot% &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'hp_rva_100')">HP RVA/100 &#8597;</th>
+              <th onclick="sortExplorer('bowl', 'cons_rate')">Cons% &#8597;</th>
+              <th>RR 2027 Role &amp; Tier</th>
+            </tr>
+          </thead>
+          <tbody id="exp-bowl-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: RAJASTHAN ROYALS IPL 2027 SQUAD AUDIT & AUCTION MATRIX -->
+  <section id="tab-rr" class="tab-panel">
+    <div class="grid-3" style="margin-bottom:22px;">
+      <div class="card" style="border-top: 4px solid var(--rr-pink);">
+        <span class="pill pill-pink">Priority 1 Auction Need</span>
+        <h3 style="margin-top:8px; font-size:17px;">Domestic #5/#6 Finisher</h3>
+        <p style="font-size:12.5px; color:#CBD5E1; margin-top:6px;">
+          In IPL 2025–26, RR lost a league-high <b>87 High-Pressure wickets</b> (20.15 Avg, -36.4 RVA/100, 8th in IPL) as #5–#7 struggled under RRR spikes (Hetmyer 151.0 HP SR, Curran 135.7 HP SR, Dubey 132.5 HP SR).
+        </p>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border-col); font-size:12.5px;">
+          <b style="color:var(--rr-gold);">Primary Targets:</b><br>
+          &bull; <b>#1 Shashank Singh</b> (PRR 98.0 | 177.5 HP SR | 61.6 HP Avg)<br>
+          &bull; <b>#7 Naman Dhir</b> (PRR 84.0 | 184.6 HP SR + Off-Spin)<br>
+          &bull; <b>#4 Tim David / #8 Stoinis / #10 Stubbs</b> (Overseas Finisher)
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid #0284C7;">
+        <span class="pill pill-blue">Priority 2 Auction Need</span>
+        <h3 style="margin-top:8px; font-size:17px;">Death-Overs Pace Partner for Archer</h3>
+        <p style="font-size:12.5px; color:#CBD5E1; margin-top:6px;">
+          RR bowled <b>1,265 High-Pressure balls</b> in IPL 2025–26 at an <b>11.14 Economy</b> (-11.8 RVA/100, 8th in IPL). While <b>#18 Jofra Archer</b> (12.7 HP SR, +31.0 RVA/100) excelled, Curran (11.16), Deshpande (10.84) &amp; Burger (10.24) leaked runs.
+        </p>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border-col); font-size:12.5px;">
+          <b style="color:var(--rr-gold);">Primary Targets:</b><br>
+          &bull; <b>#3 Nathan Ellis</b> (PRR 92.1 | 70.6% Cons | 8.89 HP Econ)<br>
+          &bull; <b>#6 Matheesha Pathirana</b> (PRR 88.3 | 11.7 HP SR)<br>
+          &bull; <b>#9 Josh Hazlewood / #13 Lungi Ngidi / #17 Eshan Malinga</b>
+        </div>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--rr-gold);">
+        <span class="pill pill-gold">Priority 3 Auction Need</span>
+        <h3 style="margin-top:8px; font-size:17px;">Middle-Overs Spin Choke &amp; Strike</h3>
+        <p style="font-size:12.5px; color:#CBD5E1; margin-top:6px;">
+          In high-pressure middle overs at Jaipur's big boundaries, RR's spinners conceded 9.11+ RPO (Bishnoi 9.11 HP Econ, Jadeja 9.52 HP Econ at 45.0 SR). RR needs a sub-7.8 RPO high-pressure spin bank.
+        </p>
+        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border-col); font-size:12.5px;">
+          <b style="color:var(--rr-gold);">Primary Targets:</b><br>
+          &bull; <b>#5 Mitchell Santner</b> (PRR 91.1 | 7.58 HP Econ | 13.2 SR)<br>
+          &bull; <b>#8 Krunal Pandya</b> (PRR 86.7 | 7.02 HP Econ, -1.74 vs Par)<br>
+          &bull; <b>#7 Kuldeep Yadav / #15 Wanindu Hasaranga</b> (Wrist-Spin)
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">&#127942; IPL 2025–2026 Franchise High-Pressure Performance Matrix (PI &ge; 55)</div>
+        <span class="pill pill-pink">RR Ranked #8 in Batting &amp; #8 in Bowling</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Franchise</th>
+              <th>HP Bat Balls</th>
+              <th>HP Bat SR</th>
+              <th>HP Bat Avg (Wkts)</th>
+              <th>HP Batting RVA / 100</th>
+              <th>HP Bowl Balls</th>
+              <th>HP Bowl Econ</th>
+              <th>HP Bowling RVA / 100</th>
+              <th>Combined Net RVA / 100</th>
+            </tr>
+          </thead>
+          <tbody id="team-matrix-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const batData = [{"rank": 1, "id": 2756, "name": "Shashank Singh", "prr": 98.0, "total_balls": 560, "ipl_balls": 560, "hp_balls": 347, "hp_runs": 616, "norm_sr": 135.68, "hp_sr": 177.52, "sr_delta": 41.84, "sr_vs_par": 19.61, "hp_avg": 61.6, "hp_bndry_pct": 24.2, "hp_dot_pct": 24.8, "hp_rva_100": 45.79, "ep_rva_100": 48.01, "cons_rate": 80.0, "role": "#5/#6 Pace-Hitting Finisher", "tier": "Prime Domestic Target", "note": "61.60 HP Avg & +41.84 SR surge under pressure (135.7 -> 177.5 SR); 80.0% match consistency. Solves RR's #6 high-dismissal crisis without using an overseas slot."}, {"rank": 2, "id": 7897, "name": "Namboori Tilak Varma", "prr": 90.38, "total_balls": 2515, "ipl_balls": 1283, "hp_balls": 932, "hp_runs": 1531, "norm_sr": 130.45, "hp_sr": 164.27, "sr_delta": 33.82, "sr_vs_par": 16.82, "hp_avg": 42.53, "hp_bndry_pct": 21.7, "hp_dot_pct": 28.0, "hp_rva_100": 37.85, "ep_rva_100": 51.34, "cons_rate": 66.2, "role": "#3/#4 LHB Collapse Stabilizer", "tier": "Marquee Core / Trade Target", "note": "932 HP balls, +33.82 SR jump & +51.34 Extreme-Pressure RVA/100; elite antidote to Powerplay/middle-over collapses."}, {"rank": 3, "id": 1699, "name": "Suryakumar Yadav", "prr": 88.53, "total_balls": 2761, "ipl_balls": 1358, "hp_balls": 792, "hp_runs": 1428, "norm_sr": 160.84, "hp_sr": 180.3, "sr_delta": 19.46, "sr_vs_par": 34.41, "hp_avg": 40.8, "hp_bndry_pct": 28.2, "hp_dot_pct": 31.9, "hp_rva_100": 36.88, "ep_rva_100": 23.38, "cons_rate": 63.8, "role": "#3/#4 360\u00b0 Spin & Pace Destructor", "tier": "Franchise Benchmark / Core", "note": "+34.41 SR above contextual par & 28.2% boundary rate in high pressure; gold-standard middle-overs accelerator."}, {"rank": 4, "id": 6396, "name": "Tim David", "prr": 87.7, "total_balls": 1226, "ipl_balls": 647, "hp_balls": 738, "hp_runs": 1343, "norm_sr": 171.11, "hp_sr": 181.98, "sr_delta": 10.87, "sr_vs_par": 26.75, "hp_avg": 35.34, "hp_bndry_pct": 25.7, "hp_dot_pct": 30.9, "hp_rva_100": 31.92, "ep_rva_100": 32.46, "cons_rate": 65.5, "role": "#6 Overseas Power Finisher", "tier": "High-Priority Overseas Target", "note": "181.98 HP SR across 738 HP balls (+26.75 vs par); elite yorker/pace destructor to rotate or pair with Shimron Hetmyer at #6."}, {"rank": 5, "id": 813, "name": "Jos Buttler", "prr": 86.54, "total_balls": 2829, "ipl_balls": 1791, "hp_balls": 395, "hp_runs": 705, "norm_sr": 151.64, "hp_sr": 178.48, "sr_delta": 26.84, "sr_vs_par": 26.69, "hp_avg": 33.57, "hp_bndry_pct": 25.6, "hp_dot_pct": 27.8, "hp_rva_100": 24.69, "ep_rva_100": 40.74, "cons_rate": 68.8, "role": "Top-Order Chase Architect (WK)", "tier": "Marquee Reunion Target", "note": "+26.84 SR jump in high pressure & +40.74 Extreme-Pressure RVA/100; anchors steep 180+ run chases deep into Over 18."}, {"rank": 6, "id": 4703, "name": "Rishabh Pant", "prr": 85.17, "total_balls": 1240, "ipl_balls": 940, "hp_balls": 375, "hp_runs": 656, "norm_sr": 129.25, "hp_sr": 174.93, "sr_delta": 45.68, "sr_vs_par": 24.69, "hp_avg": 29.82, "hp_bndry_pct": 26.9, "hp_dot_pct": 33.3, "hp_rva_100": 13.84, "ep_rva_100": 28.41, "cons_rate": 66.7, "role": "#4/#5 Explosive LHB WK-Batter", "tier": "Marquee Leadership Target", "note": "+45.68 SR elevation under pressure (129.2 -> 174.9 SR); high-boundary middle-order match-winner vs spin and pace."}, {"rank": 7, "id": 37052, "name": "Naman Dhir", "prr": 84.02, "total_balls": 589, "ipl_balls": 433, "hp_balls": 240, "hp_runs": 443, "norm_sr": 157.31, "hp_sr": 184.58, "sr_delta": 27.28, "sr_vs_par": 28.38, "hp_avg": 29.53, "hp_bndry_pct": 26.7, "hp_dot_pct": 26.7, "hp_rva_100": 17.1, "ep_rva_100": 27.17, "cons_rate": 60.9, "role": "#5/#6 Domestic Finisher & Off-Spin", "tier": "High-Value Moneyball Target", "note": "184.58 HP SR (+28.38 vs par) & only 26.7% dots; realistic domestic auction gem who adds finishing punch + 2 overs of off-spin."}, {"rank": 8, "id": 2639, "name": "Marcus Stoinis", "prr": 83.09, "total_balls": 1247, "ipl_balls": 847, "hp_balls": 657, "hp_runs": 1109, "norm_sr": 136.61, "hp_sr": 168.8, "sr_delta": 32.19, "sr_vs_par": 19.16, "hp_avg": 32.62, "hp_bndry_pct": 23.9, "hp_dot_pct": 30.7, "hp_rva_100": 20.81, "ep_rva_100": 24.14, "cons_rate": 60.9, "role": "#5 Seam-Bowling Power All-Rounder", "tier": "High-Priority Overseas Target", "note": "+32.19 SR boost under pressure (168.8 HP SR across 657 HP balls); upgrades Sam Curran's batting ceiling in chases."}, {"rank": 9, "id": 1318, "name": "Andre Russell", "prr": 83.08, "total_balls": 733, "ipl_balls": 570, "hp_balls": 503, "hp_runs": 875, "norm_sr": 164.78, "hp_sr": 173.96, "sr_delta": 9.17, "sr_vs_par": 21.28, "hp_avg": 30.17, "hp_bndry_pct": 26.8, "hp_dot_pct": 41.4, "hp_rva_100": 18.14, "ep_rva_100": 9.84, "cons_rate": 66.7, "role": "#6/#7 Death Impact All-Rounder", "tier": "Elite Impact Benchmark", "note": "173.96 HP SR & 26.8% boundaries in crunch situations; provides dual-discipline death overs match-winning spikes."}, {"rank": 10, "id": 20702, "name": "Tristan Stubbs", "prr": 82.68, "total_balls": 1082, "ipl_balls": 649, "hp_balls": 563, "hp_runs": 913, "norm_sr": 136.61, "hp_sr": 162.17, "sr_delta": 25.56, "sr_vs_par": 7.74, "hp_avg": 32.61, "hp_bndry_pct": 21.3, "hp_dot_pct": 27.9, "hp_rva_100": 16.35, "ep_rva_100": 56.44, "cons_rate": 65.1, "role": "#5/#6 Death-Overs Destroyer (WK)", "tier": "Marquee Young Overseas Target", "note": "#1 Extreme-Pressure RVA/100 (+56.44) in dataset & +25.56 SR jump; elite spin/pace hitter in Overs 15\u201320."}, {"rank": 11, "id": 3125, "name": "Nicholas Pooran", "prr": 82.63, "total_balls": 1973, "ipl_balls": 1150, "hp_balls": 683, "hp_runs": 1139, "norm_sr": 151.86, "hp_sr": 166.76, "sr_delta": 14.9, "sr_vs_par": 17.85, "hp_avg": 31.64, "hp_bndry_pct": 23.6, "hp_dot_pct": 34.7, "hp_rva_100": 19.33, "ep_rva_100": 18.53, "cons_rate": 65.2, "role": "#4/#5 LHB Spin & Pace Hitter", "tier": "Marquee Benchmark", "note": "166.81 HP SR across 696 HP balls with +19.27 HP RVA/100 and 24.9% high-pressure boundary percentage."}, {"rank": 12, "id": 3647, "name": "Shreyas Iyer", "prr": 82.27, "total_balls": 1865, "ipl_balls": 1177, "hp_balls": 503, "hp_runs": 881, "norm_sr": 145.01, "hp_sr": 175.15, "sr_delta": 30.14, "sr_vs_par": 28.71, "hp_avg": 29.37, "hp_bndry_pct": 23.3, "hp_dot_pct": 24.9, "hp_rva_100": 25.36, "ep_rva_100": 0.09, "cons_rate": 57.1, "role": "#3/#4 Spin-Hitting Anchor", "tier": "Marquee Domestic Leader", "note": "175.08 HP SR (+30.14 over usual 144.95 SR) & 67.6% match consistency across 329 HP balls."}, {"rank": 13, "id": 4755, "name": "Shivam Dube", "prr": 81.01, "total_balls": 1544, "ipl_balls": 1133, "hp_balls": 682, "hp_runs": 1103, "norm_sr": 148.14, "hp_sr": 161.73, "sr_delta": 13.59, "sr_vs_par": 9.47, "hp_avg": 35.58, "hp_bndry_pct": 21.3, "hp_dot_pct": 29.0, "hp_rva_100": 18.94, "ep_rva_100": 30.6, "cons_rate": 59.6, "role": "#4/#5 Middle-Over Spin Enforcer", "tier": "High-Impact Domestic", "note": "161.69 HP SR, 35.57 HP Avg & +30.57 Extreme-Pressure RVA/100 across 618 HP balls."}, {"rank": 14, "id": 2258, "name": "Sanju Samson", "prr": 79.83, "total_balls": 2232, "ipl_balls": 1385, "hp_balls": 345, "hp_runs": 588, "norm_sr": 151.72, "hp_sr": 170.43, "sr_delta": 18.71, "sr_vs_par": 21.67, "hp_avg": 30.95, "hp_bndry_pct": 26.1, "hp_dot_pct": 33.6, "hp_rva_100": 17.65, "ep_rva_100": 24.39, "cons_rate": 51.9, "role": "#3 Top-Order WK-Batter", "tier": "Former RR Captain Benchmark", "note": "170.44 HP SR (+21.02 over usual SR) and 25.1% boundary rate across 450 HP balls."}, {"rank": 15, "id": 1077, "name": "David Miller", "prr": 79.09, "total_balls": 1280, "ipl_balls": 911, "hp_balls": 799, "hp_runs": 1248, "norm_sr": 137.84, "hp_sr": 156.2, "sr_delta": 18.36, "sr_vs_par": 6.41, "hp_avg": 33.73, "hp_bndry_pct": 19.9, "hp_dot_pct": 28.0, "hp_rva_100": 17.9, "ep_rva_100": 22.4, "cons_rate": 57.9, "role": "#5/#6 LHB Chase Finisher", "tier": "Veteran Overseas Finisher", "note": "1,248 HP runs across 814 HP balls at 33.73 HP Avg and +14.66 HP RVA/100."}, {"rank": 16, "id": 5039, "name": "Rajat Patidar", "prr": 77.78, "total_balls": 918, "ipl_balls": 918, "hp_balls": 250, "hp_runs": 470, "norm_sr": 160.33, "hp_sr": 188.0, "sr_delta": 27.67, "sr_vs_par": 36.53, "hp_avg": 27.65, "hp_bndry_pct": 26.0, "hp_dot_pct": 26.8, "hp_rva_100": 12.37, "ep_rva_100": -2.12, "cons_rate": 50.0, "role": "Batter", "tier": "Target", "note": ""}, {"rank": 17, "id": 4117, "name": "Ishan Kishan", "prr": 77.35, "total_balls": 2411, "ipl_balls": 1443, "hp_balls": 277, "hp_runs": 428, "norm_sr": 145.31, "hp_sr": 154.51, "sr_delta": 9.2, "sr_vs_par": 9.15, "hp_avg": 26.75, "hp_bndry_pct": 22.7, "hp_dot_pct": 33.6, "hp_rva_100": -2.37, "ep_rva_100": 37.69, "cons_rate": 70.4, "role": "Batter", "tier": "Target", "note": ""}, {"rank": 18, "id": 3916, "name": "Jitesh Sharma", "prr": 76.04, "total_balls": 895, "ipl_balls": 726, "hp_balls": 404, "hp_runs": 689, "norm_sr": 142.57, "hp_sr": 170.54, "sr_delta": 27.98, "sr_vs_par": 16.06, "hp_avg": 24.61, "hp_bndry_pct": 23.8, "hp_dot_pct": 30.9, "hp_rva_100": 1.48, "ep_rva_100": 13.48, "cons_rate": 57.6, "role": "Batter", "tier": "Target", "note": ""}, {"rank": 19, "id": 7260, "name": "Dhruv Jurel", "prr": 74.89, "total_balls": 798, "ipl_balls": 775, "hp_balls": 353, "hp_runs": 574, "norm_sr": 142.25, "hp_sr": 162.61, "sr_delta": 20.36, "sr_vs_par": 3.81, "hp_avg": 27.33, "hp_bndry_pct": 21.5, "hp_dot_pct": 28.9, "hp_rva_100": -0.86, "ep_rva_100": 27.67, "cons_rate": 60.7, "role": "#5 Retained RR Keeper-Batter", "tier": "RR Core Retention (#19)", "note": "162.61 HP SR (+20.43 over usual 142.18 SR) & +27.67 Extreme-Pressure RVA/100 across 345 HP balls."}, {"rank": 20, "id": 47, "name": "Virat Kohli", "prr": 74.44, "total_balls": 2456, "ipl_balls": 2091, "hp_balls": 205, "hp_runs": 329, "norm_sr": 143.85, "hp_sr": 160.49, "sr_delta": 16.64, "sr_vs_par": 8.06, "hp_avg": 32.9, "hp_bndry_pct": 21.5, "hp_dot_pct": 28.3, "hp_rva_100": 1.48, "ep_rva_100": 29.8, "cons_rate": 55.6, "role": "Batter", "tier": "Target", "note": ""}];
+const bowlData = [{"rank": 1, "id": 781, "name": "Sunil Narine", "prr": 98.0, "total_balls": 1533, "ipl_balls": 1533, "hp_balls": 441, "hp_wkts": 28, "norm_econ": 6.84, "hp_econ": 6.93, "par_econ": 9.09, "econ_saved": 2.16, "econ_delta_self": -0.08, "hp_sr": 15.8, "hp_dot_pct": 35.6, "hp_bndry_pct": 9.8, "hp_rva_100": 48.73, "ep_rva_100": 91.18, "cons_rate": 58.5, "role": "Middle-to-Death Spin Choke", "tier": "Franchise Benchmark / Core", "note": "6.93 HP Economy (-2.16 RPO vs par) & 9.75% boundaries; forces batters into fatal high-risk shots in chases."}, {"rank": 2, "id": 2933, "name": "Jasprit Bumrah", "prr": 92.59, "total_balls": 1708, "ipl_balls": 1209, "hp_balls": 682, "hp_wkts": 44, "norm_econ": 7.12, "hp_econ": 7.49, "par_econ": 9.85, "econ_saved": 2.37, "econ_delta_self": -0.36, "hp_sr": 15.5, "hp_dot_pct": 39.9, "hp_bndry_pct": 14.2, "hp_rva_100": 52.28, "ep_rva_100": 5.89, "cons_rate": 51.6, "role": "All-Phase & Death Enforcer", "tier": "Franchise Benchmark / Core", "note": "Saves an unmatched 2.37 RPO vs par in high pressure (7.49 HP Econ vs 9.85 Par) with +52.28 HP RVA/100."}, {"rank": 3, "id": 7920, "name": "Nathan Ellis", "prr": 92.11, "total_balls": 916, "ipl_balls": 312, "hp_balls": 415, "hp_wkts": 34, "norm_econ": 7.72, "hp_econ": 8.89, "par_econ": 9.47, "econ_saved": 0.58, "econ_delta_self": -1.17, "hp_sr": 12.2, "hp_dot_pct": 35.9, "hp_bndry_pct": 19.3, "hp_rva_100": 40.62, "ep_rva_100": 32.97, "cons_rate": 70.6, "role": "Tactical Death Specialist", "tier": "Prime Overseas Auction Target", "note": "70.6% spell consistency (#1 in dataset) & 12.2 HP SR; slower-ball/yorker craft is tailor-made for Jaipur's big square boundaries."}, {"rank": 4, "id": 4722, "name": "Rashid Khan", "prr": 91.44, "total_balls": 2747, "ipl_balls": 1718, "hp_balls": 902, "hp_wkts": 70, "norm_econ": 7.35, "hp_econ": 7.6, "par_econ": 8.85, "econ_saved": 1.25, "econ_delta_self": -0.24, "hp_sr": 12.9, "hp_dot_pct": 35.4, "hp_bndry_pct": 13.1, "hp_rva_100": 49.33, "ep_rva_100": 7.26, "cons_rate": 60.8, "role": "Middle/Death Wrist-Spin Strike", "tier": "Marquee Spin Benchmark", "note": "70 HP wickets at 12.9 SR & 7.60 HP Econ (-1.25 vs par); breaks set partnerships and hits lower-order sixes."}, {"rank": 5, "id": 4101, "name": "Mitchell Santner", "prr": 91.06, "total_balls": 1737, "ipl_balls": 561, "hp_balls": 462, "hp_wkts": 35, "norm_econ": 7.39, "hp_econ": 7.58, "par_econ": 8.48, "econ_saved": 0.9, "econ_delta_self": -0.19, "hp_sr": 13.2, "hp_dot_pct": 36.8, "hp_bndry_pct": 13.0, "hp_rva_100": 46.01, "ep_rva_100": 22.27, "cons_rate": 61.1, "role": "Powerplay & Middle LHB Control", "tier": "High-Value Overseas Target", "note": "7.58 HP Economy (-0.90 vs par), 13.2 HP SR & 61.1% consistency; elite auction value to control RHB middle orders."}, {"rank": 6, "id": 8661, "name": "Matheesha Pathirana", "prr": 88.29, "total_balls": 1132, "ipl_balls": 710, "hp_balls": 469, "hp_wkts": 40, "norm_econ": 8.34, "hp_econ": 9.52, "par_econ": 9.91, "econ_saved": 0.39, "econ_delta_self": -1.17, "hp_sr": 11.7, "hp_dot_pct": 36.2, "hp_bndry_pct": 18.8, "hp_rva_100": 43.1, "ep_rva_100": 16.83, "cons_rate": 62.2, "role": "Overs 15\u201320 Death Strike Weapon", "tier": "High-Impact Overseas Target", "note": "11.7 HP Bowling Strike Rate & 62.2% spell consistency in pure death overs; lethal yorker/sling combination with Archer."}, {"rank": 7, "id": 3644, "name": "Kuldeep Yadav", "prr": 87.77, "total_balls": 1914, "ipl_balls": 1390, "hp_balls": 583, "hp_wkts": 38, "norm_econ": 8.07, "hp_econ": 7.89, "par_econ": 9.09, "econ_saved": 1.2, "econ_delta_self": 0.18, "hp_sr": 15.3, "hp_dot_pct": 33.1, "hp_bndry_pct": 12.3, "hp_rva_100": 34.96, "ep_rva_100": -3.52, "cons_rate": 61.5, "role": "Middle-Overs Chinaman Wicket-Taker", "tier": "Marquee Indian Spin Target", "note": "7.89 HP Economy (-1.20 vs par) & 15.3 HP SR; restores the attacking middle-overs wrist-spin threat RR lost post-Chahal."}, {"rank": 8, "id": 4219, "name": "Krunal Pandya", "prr": 86.73, "total_balls": 1257, "ipl_balls": 1257, "hp_balls": 352, "hp_wkts": 17, "norm_econ": 8.12, "hp_econ": 7.02, "par_econ": 8.76, "econ_saved": 1.74, "econ_delta_self": 1.1, "hp_sr": 20.7, "hp_dot_pct": 34.7, "hp_bndry_pct": 11.6, "hp_rva_100": 27.49, "ep_rva_100": 27.8, "cons_rate": 48.3, "role": "Defensive Middle-Over Bank", "tier": "Realistic Domestic Auction Target", "note": "7.02 HP Economy (-1.74 RPO vs par, 1.10 RPO better than his normal economy!); ideal defensive partner for Ravi Bishnoi."}, {"rank": 9, "id": 830, "name": "Josh Hazlewood", "prr": 86.24, "total_balls": 1476, "ipl_balls": 906, "hp_balls": 536, "hp_wkts": 39, "norm_econ": 7.92, "hp_econ": 8.91, "par_econ": 9.47, "econ_saved": 0.56, "econ_delta_self": -0.99, "hp_sr": 13.7, "hp_dot_pct": 42.7, "hp_bndry_pct": 21.6, "hp_rva_100": 33.82, "ep_rva_100": 49.65, "cons_rate": 57.1, "role": "Powerplay & Death Length Enforcer", "tier": "High-Priority Overseas Target", "note": "42.7% High-Pressure Dot-Ball Rate (#1 in Top 10) & +49.65 Extreme-Pressure RVA/100; elite new-ball + death control."}, {"rank": 10, "id": 829, "name": "Mitchell Starc", "prr": 85.68, "total_balls": 808, "ipl_balls": 616, "hp_balls": 257, "hp_wkts": 25, "norm_econ": 10.0, "hp_econ": 9.67, "par_econ": 9.78, "econ_saved": 0.12, "econ_delta_self": 0.33, "hp_sr": 10.3, "hp_dot_pct": 40.5, "hp_bndry_pct": 23.3, "hp_rva_100": 42.9, "ep_rva_100": 24.84, "cons_rate": 44.8, "role": "Knockout & Powerplay/Death Strike", "tier": "Marquee Overseas Pace Target", "note": "10.3 HP Bowling Strike Rate (#1 in Top 10) & 40.5% dot balls; proven big-match knockout breaker."}, {"rank": 11, "id": 2876, "name": "Axar Patel", "prr": 85.53, "total_balls": 2670, "ipl_balls": 1284, "hp_balls": 733, "hp_wkts": 46, "norm_econ": 7.94, "hp_econ": 7.76, "par_econ": 8.66, "econ_saved": 0.9, "econ_delta_self": 0.18, "hp_sr": 15.9, "hp_dot_pct": 35.6, "hp_bndry_pct": 14.7, "hp_rva_100": 29.13, "ep_rva_100": 16.35, "cons_rate": 54.2, "role": "Middle-Over LHB Spin All-Rounder", "tier": "Marquee Indian All-Rounder", "note": "7.76 HP Economy (-0.98 RPO vs par) across 611 HP balls with +26.49 HP RVA/100."}, {"rank": 12, "id": 1596, "name": "Moeen Ali", "prr": 83.98, "total_balls": 805, "ipl_balls": 443, "hp_balls": 231, "hp_wkts": 16, "norm_econ": 8.26, "hp_econ": 8.08, "par_econ": 8.24, "econ_saved": 0.17, "econ_delta_self": 0.18, "hp_sr": 14.4, "hp_dot_pct": 37.7, "hp_bndry_pct": 13.4, "hp_rva_100": 32.66, "ep_rva_100": -1.89, "cons_rate": 56.5, "role": "Off-Spin Partnership Breaker", "tier": "Value Overseas All-Rounder", "note": "7.46 HP Economy (-1.10 RPO vs par) & 12.6 HP SR across 226 HP balls."}, {"rank": 13, "id": 4641, "name": "Lungi Ngidi", "prr": 83.24, "total_balls": 798, "ipl_balls": 296, "hp_balls": 329, "hp_wkts": 20, "norm_econ": 9.04, "hp_econ": 8.66, "par_econ": 9.63, "econ_saved": 0.97, "econ_delta_self": 0.38, "hp_sr": 16.4, "hp_dot_pct": 38.0, "hp_bndry_pct": 19.1, "hp_rva_100": 23.29, "ep_rva_100": 41.73, "cons_rate": 41.7, "role": "Death & Slower-Ball Strike Pacer", "tier": "High-Value Overseas Pacer", "note": "8.66 HP Economy vs 9.63 Par (-0.97 RPO saved), 12.5 HP SR & +41.67 Extreme-Pressure RVA/100."}, {"rank": 14, "id": 278, "name": "Tim Southee", "prr": 83.13, "total_balls": 826, "ipl_balls": 246, "hp_balls": 279, "hp_wkts": 23, "norm_econ": 8.06, "hp_econ": 8.84, "par_econ": 8.93, "econ_saved": 0.09, "econ_delta_self": -0.78, "hp_sr": 12.1, "hp_dot_pct": 40.9, "hp_bndry_pct": 18.6, "hp_rva_100": 31.82, "ep_rva_100": 19.81, "cons_rate": 51.7, "role": "Swing & Death Seam Veteran", "tier": "Veteran Overseas Seam", "note": "8.28 HP Economy (-1.13 RPO vs par), 12.8 HP SR & 42.1% dot balls across 307 HP balls."}, {"rank": 15, "id": 4900, "name": "Wanindu Hasaranga", "prr": 82.92, "total_balls": 2035, "ipl_balls": 762, "hp_balls": 643, "hp_wkts": 47, "norm_econ": 7.56, "hp_econ": 8.77, "par_econ": 8.66, "econ_saved": -0.11, "econ_delta_self": -1.22, "hp_sr": 13.7, "hp_dot_pct": 31.7, "hp_bndry_pct": 16.3, "hp_rva_100": 28.44, "ep_rva_100": 45.49, "cons_rate": 54.9, "role": "Middle-Over Leg-Spin Wicket-Taker", "tier": "High-Priority Spin Target", "note": "47 HP wickets at 13.7 SR across 644 HP balls (+34.48 HP RVA/100); former RR spinner with elite googly threat."}, {"rank": 16, "id": 6256, "name": "Varun Chakravarthy", "prr": 82.53, "total_balls": 2128, "ipl_balls": 1396, "hp_balls": 558, "hp_wkts": 39, "norm_econ": 7.58, "hp_econ": 9.14, "par_econ": 9.11, "econ_saved": -0.03, "econ_delta_self": -1.56, "hp_sr": 14.3, "hp_dot_pct": 35.7, "hp_bndry_pct": 20.1, "hp_rva_100": 20.34, "ep_rva_100": 54.19, "cons_rate": 62.0, "role": "Mystery Spin Middle Enforcer", "tier": "Marquee Indian Spinner", "note": "60 HP wickets across 821 HP balls (13.7 SR, 8.18 HP Econ) with 62.0% spell consistency."}, {"rank": 17, "id": 39657, "name": "Eshan Malinga", "prr": 81.16, "total_balls": 922, "ipl_balls": 486, "hp_balls": 283, "hp_wkts": 16, "norm_econ": 9.0, "hp_econ": 9.2, "par_econ": 9.8, "econ_saved": 0.6, "econ_delta_self": -0.2, "hp_sr": 17.7, "hp_dot_pct": 34.3, "hp_bndry_pct": 18.4, "hp_rva_100": 16.46, "ep_rva_100": 14.54, "cons_rate": 53.6, "role": "Emerging Death Sling Pacer", "tier": "Moneyball Overseas Death Target", "note": "12.6 HP SR & 8.85 HP Econ (-0.60 RPO vs par) with +27.31 HP RVA/100."}, {"rank": 18, "id": 3298, "name": "Jofra Archer", "prr": 80.31, "total_balls": 1259, "ipl_balls": 753, "hp_balls": 381, "hp_wkts": 30, "norm_econ": 8.49, "hp_econ": 10.31, "par_econ": 9.86, "econ_saved": -0.45, "econ_delta_self": -1.83, "hp_sr": 12.7, "hp_dot_pct": 35.2, "hp_bndry_pct": 25.5, "hp_rva_100": 21.67, "ep_rva_100": 33.12, "cons_rate": 52.4, "role": "RR Retained Pace Spearhead", "tier": "RR Core Retention (#18)", "note": "30 HP wickets at 12.70 SR across 381 HP balls (+30.96 HP RVA/100 & +33.05 Extreme-Pressure RVA/100)."}, {"rank": 19, "id": 360, "name": "Bhuvneshwar Kumar", "prr": 79.74, "total_balls": 2221, "ipl_balls": 1651, "hp_balls": 912, "hp_wkts": 54, "norm_econ": 7.76, "hp_econ": 9.05, "par_econ": 9.32, "econ_saved": 0.27, "econ_delta_self": -1.28, "hp_sr": 16.9, "hp_dot_pct": 34.8, "hp_bndry_pct": 19.4, "hp_rva_100": 18.15, "ep_rva_100": 36.91, "cons_rate": 48.1, "role": "Bowler", "tier": "Target", "note": ""}, {"rank": 20, "id": 29888, "name": "Harshit Rana", "prr": 79.27, "total_balls": 901, "ipl_balls": 649, "hp_balls": 312, "hp_wkts": 21, "norm_econ": 9.31, "hp_econ": 10.06, "par_econ": 9.68, "econ_saved": -0.38, "econ_delta_self": -0.75, "hp_sr": 14.9, "hp_dot_pct": 34.6, "hp_bndry_pct": 24.7, "hp_rva_100": 18.18, "ep_rva_100": 46.47, "cons_rate": 46.7, "role": "Aggressive Hit-the-Deck Death Pacer", "tier": "Emerging Indian Pace Star", "note": "36 HP wickets at 12.6 SR across 455 HP balls (+31.34 HP RVA/100 & 59.3% spell consistency)."}];
+const teamData = [{"team": "Chennai Super Kings", "bat_balls": 1076, "bat_sr": 146.1, "bat_avg": 24.2, "bat_wkts": 65, "bat_rva_100": -20.33, "bowl_balls": 922, "bowl_econ": 10.52, "bowl_rva_100": -4.73, "net_rva_100": -25.07}, {"team": "Mumbai Indians", "bat_balls": 1077, "bat_sr": 158.9, "bat_avg": 25.5, "bat_wkts": 67, "bat_rva_100": -9.45, "bowl_balls": 1183, "bowl_econ": 10.55, "bowl_rva_100": 4.24, "net_rva_100": -5.21}, {"team": "Rajasthan Royals", "bat_balls": 1153, "bat_sr": 152.0, "bat_avg": 20.1, "bat_wkts": 87, "bat_rva_100": -36.43, "bowl_balls": 1265, "bowl_econ": 11.14, "bowl_rva_100": -11.76, "net_rva_100": -48.19}, {"team": "Punjab Kings", "bat_balls": 1042, "bat_sr": 168.0, "bat_avg": 28.7, "bat_wkts": 61, "bat_rva_100": 2.5, "bowl_balls": 1241, "bowl_econ": 10.71, "bowl_rva_100": -14.41, "net_rva_100": -11.9}, {"team": "Royal Challengers Bengaluru", "bat_balls": 864, "bat_sr": 169.2, "bat_avg": 28.7, "bat_wkts": 51, "bat_rva_100": 6.79, "bowl_balls": 1057, "bowl_econ": 9.63, "bowl_rva_100": 25.16, "net_rva_100": 31.95}, {"team": "Delhi Capitals", "bat_balls": 1027, "bat_sr": 159.0, "bat_avg": 24.4, "bat_wkts": 67, "bat_rva_100": -11.79, "bowl_balls": 1052, "bowl_econ": 9.99, "bowl_rva_100": 2.37, "net_rva_100": -9.42}, {"team": "Kolkata Knight Riders", "bat_balls": 757, "bat_sr": 142.3, "bat_avg": 22.9, "bat_wkts": 47, "bat_rva_100": -23.55, "bowl_balls": 832, "bowl_econ": 9.81, "bowl_rva_100": 34.65, "net_rva_100": 11.1}, {"team": "Sunrisers Hyderabad", "bat_balls": 804, "bat_sr": 155.2, "bat_avg": 18.1, "bat_wkts": 69, "bat_rva_100": -43.98, "bowl_balls": 665, "bowl_econ": 10.29, "bowl_rva_100": 30.27, "net_rva_100": -13.71}, {"team": "Gujarat Titans", "bat_balls": 913, "bat_sr": 159.6, "bat_avg": 22.8, "bat_wkts": 64, "bat_rva_100": -19.13, "bowl_balls": 1083, "bowl_econ": 10.79, "bowl_rva_100": 11.26, "net_rva_100": -7.87}, {"team": "Lucknow Super Giants", "bat_balls": 869, "bat_sr": 149.4, "bat_avg": 18.3, "bat_wkts": 71, "bat_rva_100": -42.01, "bowl_balls": 1094, "bowl_econ": 11.21, "bowl_rva_100": -17.93, "net_rva_100": -59.94}];
+
+let expSort = { bat: { col: 'rank', asc: true }, bowl: { col: 'rank', asc: true } };
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+function selectSpotlight(type, idx) {
+  const d = type === 'bat' ? batData[idx] : bowlData[idx];
+  document.getElementById('sp-tag').textContent = type === 'bat' ? `Top-20 Batter Scouting Card (Rank #${d.rank})` : `Top-20 Bowler Scouting Card (Rank #${d.rank})`;
+  document.getElementById('sp-name').textContent = `#${d.rank} ${type === 'bat' ? 'Batter' : 'Bowler'}: ${d.name} (Player ID: ${d.id})`;
+  document.getElementById('sp-role').textContent = `${d.role}  |  ${d.tier}`;
+  document.getElementById('sp-note').textContent = d.note;
+
+  if (type === 'bat') {
+    document.getElementById('sp-stats').innerHTML = `
+      <div class="stat-tile"><div class="v" style="color:var(--rr-gold)">${d.prr.toFixed(2)}</div><div class="k">PRR Score</div></div>
+      <div class="stat-tile"><div class="v">${d.hp_balls}</div><div class="k">HP Balls</div></div>
+      <div class="stat-tile"><div class="v pos-val">${d.hp_sr.toFixed(1)}</div><div class="k">HP Strike Rate</div></div>
+      <div class="stat-tile"><div class="v pos-val">${d.sr_delta >= 0 ? '+' : ''}${d.sr_delta.toFixed(1)}</div><div class="k">&Delta;SR vs Usual</div></div>
+      <div class="stat-tile"><div class="v">${d.hp_avg.toFixed(1)}</div><div class="k">HP Average</div></div>
+      <div class="stat-tile"><div class="v pos-val">+${d.hp_rva_100.toFixed(1)}</div><div class="k">HP RVA / 100</div></div>
+      <div class="stat-tile"><div class="v">${d.cons_rate.toFixed(1)}%</div><div class="k">Consistency</div></div>
+    `;
+  } else {
+    document.getElementById('sp-stats').innerHTML = `
+      <div class="stat-tile"><div class="v" style="color:var(--rr-gold)">${d.prr.toFixed(2)}</div><div class="k">PRR Score</div></div>
+      <div class="stat-tile"><div class="v">${d.hp_balls} / ${d.hp_wkts}W</div><div class="k">HP Balls / Wkts</div></div>
+      <div class="stat-tile"><div class="v pos-val">${d.hp_econ.toFixed(2)}</div><div class="k">HP Economy</div></div>
+      <div class="stat-tile"><div class="v pos-val">-${d.econ_saved.toFixed(2)} RPO</div><div class="k">Saved vs Par</div></div>
+      <div class="stat-tile"><div class="v">${d.hp_sr.toFixed(1)}</div><div class="k">HP Strike Rate</div></div>
+      <div class="stat-tile"><div class="v pos-val">+${d.hp_rva_100.toFixed(1)}</div><div class="k">HP RVA / 100</div></div>
+      <div class="stat-tile"><div class="v">${d.cons_rate.toFixed(1)}%</div><div class="k">Consistency</div></div>
+    `;
+  }
+}
+
+function renderTop10Tables() {
+  const batTbody = document.getElementById('top10-bat-tbody');
+  batTbody.innerHTML = batData.slice(0, 10).map((d, idx) => `
+    <tr class="clickable-row" onclick="selectSpotlight('bat', ${idx})">
+      <td><span class="rank-badge">${d.rank}</span></td>
+      <td><b>${d.name}</b> <span style="color:var(--text-muted); font-size:11px;">(ID:${d.id})</span><br><span style="font-size:11px; color:#94A3B8;">${d.role}</span></td>
+      <td><b style="color:var(--rr-gold)">${d.prr.toFixed(2)}</b></td>
+      <td>${d.hp_balls}</td>
+      <td><b>${d.hp_sr.toFixed(1)}</b> <span class="pos-val">(${d.sr_delta >= 0 ? '+' : ''}${d.sr_delta.toFixed(1)})</span></td>
+      <td>${d.hp_avg.toFixed(1)}</td>
+      <td class="pos-val">+${d.hp_rva_100.toFixed(1)}</td>
+      <td>${d.cons_rate.toFixed(1)}%</td>
+    </tr>
+  `).join('');
+
+  const bowlTbody = document.getElementById('top10-bowl-tbody');
+  bowlTbody.innerHTML = bowlData.slice(0, 10).map((d, idx) => `
+    <tr class="clickable-row" onclick="selectSpotlight('bowl', ${idx})">
+      <td><span class="rank-badge bowl">${d.rank}</span></td>
+      <td><b>${d.name}</b> <span style="color:var(--text-muted); font-size:11px;">(ID:${d.id})</span><br><span style="font-size:11px; color:#94A3B8;">${d.role}</span></td>
+      <td><b style="color:var(--rr-gold)">${d.prr.toFixed(2)}</b></td>
+      <td>${d.hp_balls} / <b>${d.hp_wkts}W</b></td>
+      <td><b>${d.hp_econ.toFixed(2)}</b> <span class="pos-val">(-${d.econ_saved.toFixed(2)})</span></td>
+      <td>${d.hp_sr.toFixed(1)}</td>
+      <td class="pos-val">+${d.hp_rva_100.toFixed(1)}</td>
+      <td>${d.cons_rate.toFixed(1)}%</td>
+    </tr>
+  `).join('');
+}
+
+function sortExplorer(type, col) {
+  if (expSort[type].col === col) {
+    expSort[type].asc = !expSort[type].asc;
+  } else {
+    expSort[type].col = col;
+    expSort[type].asc = (col === 'rank' || col === 'name' || col === 'hp_econ' || col === 'norm_econ' || col === 'hp_sr' && type === 'bowl');
+  }
+  renderExplorerTables();
+}
+
+function renderExplorerTables() {
+  const batQ = document.getElementById('bat-search').value.toLowerCase();
+  const bowlQ = document.getElementById('bowl-search').value.toLowerCase();
+
+  let bList = batData.filter(d => d.name.toLowerCase().includes(batQ) || d.role.toLowerCase().includes(batQ) || d.tier.toLowerCase().includes(batQ));
+  bList.sort((a, b) => {
+    let va = a[expSort.bat.col], vb = b[expSort.bat.col];
+    if (typeof va === 'string') return expSort.bat.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return expSort.bat.asc ? va - vb : vb - va;
+  });
+
+  document.getElementById('exp-bat-tbody').innerHTML = bList.map(d => `
+    <tr class="clickable-row ${d.rank <= 10 ? 'top10-row' : ''}" onclick="selectSpotlight('bat', ${d.rank - 1}); switchTab('tab-unstop', document.querySelectorAll('.tab-btn')[0]);">
+      <td><span class="rank-badge ${d.rank <= 10 ? '' : 'reserve'}">${d.rank}</span></td>
+      <td><b>${d.name}</b> <span style="color:var(--text-muted)">(${d.id})</span></td>
+      <td><b style="color:var(--rr-gold)">${d.prr.toFixed(2)}</b></td>
+      <td>${d.ipl_balls}</td>
+      <td>${d.hp_balls}</td>
+      <td>${d.norm_sr.toFixed(1)}</td>
+      <td><b>${d.hp_sr.toFixed(1)}</b></td>
+      <td class="${d.sr_delta >= 0 ? 'pos-val' : 'neg-val'}">${d.sr_delta >= 0 ? '+' : ''}${d.sr_delta.toFixed(1)}</td>
+      <td class="pos-val">+${d.sr_vs_par.toFixed(1)}</td>
+      <td>${d.hp_avg.toFixed(1)}</td>
+      <td class="pos-val">+${d.hp_rva_100.toFixed(1)}</td>
+      <td class="pos-val">+${d.ep_rva_100.toFixed(1)}</td>
+      <td>${d.cons_rate.toFixed(1)}%</td>
+      <td><span style="font-size:11.5px; color:#CBD5E1;">${d.role} (${d.tier})</span></td>
+    </tr>
+  `).join('');
+
+  let wList = bowlData.filter(d => d.name.toLowerCase().includes(bowlQ) || d.role.toLowerCase().includes(bowlQ) || d.tier.toLowerCase().includes(bowlQ));
+  wList.sort((a, b) => {
+    let va = a[expSort.bowl.col], vb = b[expSort.bowl.col];
+    if (typeof va === 'string') return expSort.bowl.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return expSort.bowl.asc ? va - vb : vb - va;
+  });
+
+  document.getElementById('exp-bowl-tbody').innerHTML = wList.map(d => `
+    <tr class="clickable-row ${d.rank <= 10 ? 'top10-row' : ''}" onclick="selectSpotlight('bowl', ${d.rank - 1}); switchTab('tab-unstop', document.querySelectorAll('.tab-btn')[0]);">
+      <td><span class="rank-badge ${d.rank <= 10 ? 'bowl' : 'reserve'}">${d.rank}</span></td>
+      <td><b>${d.name}</b> <span style="color:var(--text-muted)">(${d.id})</span></td>
+      <td><b style="color:var(--rr-gold)">${d.prr.toFixed(2)}</b></td>
+      <td>${d.ipl_balls}</td>
+      <td>${d.hp_balls}</td>
+      <td><b>${d.hp_wkts}</b></td>
+      <td>${d.norm_econ.toFixed(2)}</td>
+      <td><b>${d.hp_econ.toFixed(2)}</b></td>
+      <td class="pos-val">+${d.econ_saved.toFixed(2)}</td>
+      <td>${d.hp_sr.toFixed(1)}</td>
+      <td>${d.hp_dot_pct.toFixed(1)}%</td>
+      <td class="pos-val">+${d.hp_rva_100.toFixed(1)}</td>
+      <td>${d.cons_rate.toFixed(1)}%</td>
+      <td><span style="font-size:11.5px; color:#CBD5E1;">${d.role} (${d.tier})</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderTeamMatrix() {
+  const sorted = [...teamData].sort((a, b) => b.net_rva_100 - a.net_rva_100);
+  document.getElementById('team-matrix-tbody').innerHTML = sorted.map(d => {
+    const isRR = d.team.includes('Rajasthan');
+    return `
+      <tr style="${isRR ? 'background:rgba(229,9,127,0.18); border-left:4px solid var(--rr-pink);' : ''}">
+        <td><b>${isRR ? '&#128081; ' + d.team : d.team}</b></td>
+        <td>${d.bat_balls}</td>
+        <td>${d.bat_sr.toFixed(1)}</td>
+        <td>${d.bat_avg.toFixed(1)} (${d.bat_wkts}W)</td>
+        <td class="${d.bat_rva_100 >= 0 ? 'pos-val' : 'neg-val'}">${d.bat_rva_100 >= 0 ? '+' : ''}${d.bat_rva_100.toFixed(2)}</td>
+        <td>${d.bowl_balls}</td>
+        <td>${d.bowl_econ.toFixed(2)}</td>
+        <td class="${d.bowl_rva_100 >= 0 ? 'pos-val' : 'neg-val'}">${d.bowl_rva_100 >= 0 ? '+' : ''}${d.bowl_rva_100.toFixed(2)}</td>
+        <td class="${d.net_rva_100 >= 0 ? 'pos-val' : 'neg-val'}"><b>${d.net_rva_100 >= 0 ? '+' : ''}${d.net_rva_100.toFixed(2)}</b></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function setScenario(inn, over, rrr, maxrrr, wkts, w18, wp, stakes) {
+  document.getElementById('sim-inn').value = String(inn);
+  document.getElementById('sim-over').value = over;
+  document.getElementById('sim-rrr').value = rrr;
+  document.getElementById('sim-maxrrr').value = maxrrr;
+  document.getElementById('sim-wkts').value = wkts;
+  document.getElementById('sim-w18').value = w18;
+  document.getElementById('sim-wp').value = wp;
+  document.getElementById('sim-stakes').value = String(stakes);
+  updateSim();
+}
+
+function updateSim() {
+  const inn = parseInt(document.getElementById('sim-inn').value);
+  const stakesVal = document.getElementById('sim-stakes').value;
+  const over = parseInt(document.getElementById('sim-over').value);
+  const rrr = parseFloat(document.getElementById('sim-rrr').value);
+  const maxrrr = parseFloat(document.getElementById('sim-maxrrr').value);
+  const wkts = parseInt(document.getElementById('sim-wkts').value);
+  const w18 = parseInt(document.getElementById('sim-w18').value);
+  const wp = parseFloat(document.getElementById('sim-wp').value) / 100.0;
+
+  const ballsBowled = (over - 1) * 6 + 3;
+  const ballsRem = 120 - ballsBowled;
+  const prog = ballsBowled / 120.0;
+  const parRpo = 8.80;
+
+  document.getElementById('lbl-over').textContent = `Over ${over} (${ballsRem} balls remaining)`;
+  document.getElementById('lbl-rrr').textContent = `${rrr.toFixed(2)} RPO (Par: ${parRpo.toFixed(2)})`;
+  document.getElementById('lbl-maxrrr').textContent = `${maxrrr.toFixed(2)} RPO`;
+  document.getElementById('lbl-wkts').textContent = `${wkts} Wickets Lost`;
+  document.getElementById('lbl-w18').textContent = `${w18} Wicket(s) in last 18 balls`;
+  document.getElementById('lbl-wp').textContent = `${(wp * 100).toFixed(1)}%`;
+
+  if (stakesVal === 'SO') {
+    document.getElementById('sim-pi-val').textContent = '100.0';
+    document.getElementById('sim-pi-tier').textContent = 'SUPER OVER — MAXIMUM CLUTCH (PI = 100)';
+    return;
+  }
+
+  const mStakes = parseFloat(stakesVal);
+  document.getElementById('lbl-stakes').textContent = `${inn === 2 ? '2nd Innings (Chase)' : '1st Innings'} | Stakes: ${mStakes.toFixed(2)}x`;
+
+  let sRate = 0;
+  if (inn === 2) {
+    const effRrr = 0.65 * rrr + 0.35 * Math.max(rrr, maxrrr);
+    sRate = sigmoid((effRrr - parRpo - 0.3) / 1.8);
+    if (ballsRem <= 24 && rrr >= 7.5) sRate = Math.max(sRate, 0.75);
+  } else {
+    const deficit = sigmoid((parRpo - rrr) * 1.2);
+    const deathPush = over >= 16 ? 0.55 + 0.09 * (over - 15) : 0.0;
+    sRate = Math.max(deficit, deathPush);
+  }
+
+  const expWkts = 6.0 * Math.pow(prog, 1.15);
+  const sWkt = Math.min(1.0, 0.55 * sigmoid((wkts - expWkts - 0.2) / 1.1) + 0.45 * Math.min(1.0, w18 / 2.0));
+  const phaseBoost = (over >= 16 || over <= 2) ? 0.30 : 0.0;
+  const sTime = Math.min(1.0, 0.70 * Math.pow(prog, 1.35) + phaseBoost + (inn === 2 ? 0.10 : 0.0));
+
+  const closeness = 4.0 * wp * (1.0 - wp);
+  const lLive = (0.30 + 0.70 * Math.pow(closeness, 0.35)) * (closeness < 0.04 ? 0.20 : 1.0);
+
+  const rawPi = 100.0 * mStakes * lLive * (0.42 * sRate + 0.33 * sWkt + 0.25 * sTime);
+  const pi = Math.max(0.0, Math.min(100.0, rawPi));
+
+  document.getElementById('sim-pi-val').textContent = pi.toFixed(1);
+  document.getElementById('val-srate').textContent = sRate.toFixed(2);
+  document.getElementById('bar-srate').style.width = `${(sRate * 100).toFixed(0)}%`;
+  document.getElementById('val-swkt').textContent = sWkt.toFixed(2);
+  document.getElementById('bar-swkt').style.width = `${(sWkt * 100).toFixed(0)}%`;
+  document.getElementById('val-stime').textContent = sTime.toFixed(2);
+  document.getElementById('bar-stime').style.width = `${(sTime * 100).toFixed(0)}%`;
+  document.getElementById('val-llive').textContent = `${(lLive * mStakes).toFixed(2)}x`;
+  document.getElementById('bar-llive').style.width = `${Math.min(100, lLive * mStakes * 100).toFixed(0)}%`;
+
+  const tierEl = document.getElementById('sim-pi-tier');
+  const valEl = document.getElementById('sim-pi-val');
+  if (pi >= 70) {
+    tierEl.textContent = 'EXTREME CLUTCH PRESSURE (PI ≥ 70)';
+    tierEl.style.color = '#F472B6';
+    valEl.style.color = '#E5097F';
+  } else if (pi >= 55) {
+    tierEl.textContent = 'HIGH PRESSURE (55 ≤ PI < 70)';
+    tierEl.style.color = '#F5A623';
+    valEl.style.color = '#F5A623';
+  } else if (pi >= 35) {
+    tierEl.textContent = 'MODERATE PRESSURE (35 ≤ PI < 55)';
+    tierEl.style.color = '#38BDF8';
+    valEl.style.color = '#38BDF8';
+  } else {
+    tierEl.textContent = 'ROUTINE / LOW LEVERAGE (PI < 35)';
+    tierEl.style.color = '#94A3B8';
+    valEl.style.color = '#94A3B8';
+  }
+}
+
+renderTop10Tables();
+renderExplorerTables();
+renderTeamMatrix();
+updateSim();
+</script>
+</body>
+</html>
